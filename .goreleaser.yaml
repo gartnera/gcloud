@@ -16,5 +16,6 @@ changelog:
   sort: asc
   filters:
     exclude:
+      - "^ci:"
       - "^docs:"
       - "^test:"

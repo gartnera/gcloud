@@ -91,11 +91,6 @@ func discoverAdcPath() string {
 
 // WriteApplicationDefaultCredentials idempotently writes out the application default credentials to disk
 func WriteApplicationDefaultCredentials(adc *ApplicationDefaultCredentials) error {
-	if !adc.AccessTokenExpiry.IsZero() {
-		// make the token always expire a bit faster so that we always have valid token downstream for
-		// at least 15 minutes
-		adc.AccessTokenExpiry = adc.AccessTokenExpiry.Add(-time.Minute * 15).UTC()
-	}
 	adcPath := discoverAdcPath()
 	tmpPath := adcPath + ".tmp"
 	adcFile, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)

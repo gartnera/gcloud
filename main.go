@@ -8,6 +8,7 @@ import (
 
 	"github.com/gartnera/gcloud/auth"
 	"github.com/gartnera/gcloud/config"
+	"github.com/gartnera/gcloud/container"
 	"github.com/gartnera/gcloud/helpers"
 	"github.com/spf13/cobra"
 )
@@ -55,12 +56,10 @@ func gcloudFallback() error {
 	return cmd.Run()
 }
 
-func main() {
-	rootCmd.AddCommand(auth.GetRootCmd())
-	rootCmd.AddCommand(config.GetRootCmd())
-
-	// automatically fallback to google provided gcloud if we don't have a matching command
-	// fallback for unknown commands, root commands, and intermediate commands (commands that have multiple children)
+func maybeFallback() {
+	if os.Getenv("GCLOUD_NO_FALLBACK") != "" {
+		return
+	}
 	targetCmd, _, _ := rootCmd.Find(os.Args[1:])
 	if targetCmd == nil || targetCmd == rootCmd || len(targetCmd.Commands()) > 0 {
 		err := gcloudFallback()
@@ -73,6 +72,17 @@ func main() {
 		}
 		return
 	}
+}
+
+func main() {
+	rootCmd.AddCommand(auth.GetRootCmd())
+	rootCmd.AddCommand(config.GetRootCmd())
+	rootCmd.AddCommand(container.GetRootCmd())
+
+	// automatically fallback to google provided gcloud if we don't have a matching command
+	// fallback for unknown commands, root commands, and intermediate commands (commands that have multiple children)
+	maybeFallback()
+
 	err := rootCmd.Execute()
 	if err != nil {
 		os.Exit(1)

@@ -1,6 +1,6 @@
 The python `gcloud` has always sucked. It's slow, takes up a ~100MB of disk space, and annoying to install in CI/CD environments. But I've always tolerated it because it worked just well enough. That has changed recently with some super annoying changes ([1](https://issuetracker.google.com/issues/224754679), [2](https://cloud.google.com/blog/products/containers-kubernetes/kubectl-auth-changes-in-gke)) to `gcloud`. So let's fix it by reimplementing `gcloud` in go!
 
-This implementation of `gcloud` is incrementally adoptable, meaning that it will automatically fallback to python `gcloud` if we have not implemented a specific subcommand. My initial goal is to implement all the things I personally need in CI/CD environments for linux environments. Contributions are accepted for other features and environments.
+This implementation of `gcloud` is incrementally adoptable, meaning that it will automatically fallback to python `gcloud` if we have not implemented a specific subcommand. My initial goal is to implement things I personally need for CI/CD in Linux environments. Contributions are welcome for other features and environments.
 
 ## Install
 

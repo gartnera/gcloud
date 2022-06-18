@@ -60,8 +60,9 @@ func main() {
 	rootCmd.AddCommand(config.GetRootCmd())
 
 	// automatically fallback to google provided gcloud if we don't have a matching command
+	// fallback for unknown commands, root commands, and intermediate commands (commands that have multiple children)
 	targetCmd, _, _ := rootCmd.Find(os.Args[1:])
-	if targetCmd == rootCmd {
+	if targetCmd == nil || targetCmd == rootCmd || len(targetCmd.Commands()) > 0 {
 		err := gcloudFallback()
 		if err != nil {
 			var exerr *exec.ExitError

@@ -7,6 +7,7 @@ import (
 	"os/exec"
 
 	"github.com/gartnera/gcloud/auth"
+	"github.com/gartnera/gcloud/config"
 	"github.com/gartnera/gcloud/helpers"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +17,7 @@ var rootCmd = &cobra.Command{
 }
 
 func gcloudFallback() error {
-	gcloudPath, err := helpers.LookPathNoSelf("gcloud")
+	gcloudPath, err := helpers.LookPathPreamble("gcloud", "#!/bin/sh")
 	if err != nil {
 		return fmt.Errorf("unable to find gcloud: %w", err)
 	}
@@ -56,6 +57,7 @@ func gcloudFallback() error {
 
 func main() {
 	rootCmd.AddCommand(auth.GetRootCmd())
+	rootCmd.AddCommand(config.GetRootCmd())
 
 	// automatically fallback to google provided gcloud if we don't have a matching command
 	targetCmd, _, _ := rootCmd.Find(os.Args[1:])

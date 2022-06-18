@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -8,12 +9,23 @@ import (
 	"path/filepath"
 )
 
-func findExecutable(file string) error {
+var errPreambleMismatch = errors.New("preamble mismatch")
+
+func findExecutable(file string, preamble string) error {
 	d, err := os.Stat(file)
 	if err != nil {
 		return err
 	}
 	if m := d.Mode(); !m.IsDir() && m&0111 != 0 {
+		f, _ := os.Open(file)
+		preambleBytes := make([]byte, len(preamble))
+		_, err := f.Read(preambleBytes)
+		if err != nil {
+			return fmt.Errorf("unable to detect filetype: %w", err)
+		}
+		if preamble != string(preambleBytes) {
+			return errPreambleMismatch
+		}
 		return nil
 	}
 	return fs.ErrPermission
@@ -23,12 +35,8 @@ func findExecutable(file string) error {
 // directories named by the PATH environment variable.
 // The result will be an absolute path
 //
-// This function ensures we never return our own binary
-func LookPathNoSelf(file string) (string, error) {
-	selfPath, err := filepath.Abs(os.Args[0])
-	if err != nil {
-		return "", fmt.Errorf("unable to calculate absolute path for self: %w", err)
-	}
+// Ensure file contents have specific preamble (#!/bin/sh)
+func LookPathPreamble(file string, preamble string) (string, error) {
 	path := os.Getenv("PATH")
 	for _, dir := range filepath.SplitList(path) {
 		if dir == "" {
@@ -39,10 +47,7 @@ func LookPathNoSelf(file string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("unable to calculate absolute path for path candidate: %w", err)
 		}
-		if path == selfPath {
-			continue
-		}
-		err = findExecutable(path)
+		err = findExecutable(path, preamble)
 		if err == nil {
 			return path, nil
 		}

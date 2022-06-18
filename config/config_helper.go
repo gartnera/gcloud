@@ -35,15 +35,15 @@ var configHelperCmd = &cobra.Command{
 	Use: "config-helper",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		outputFormat, _ := cmd.Flags().GetString("format")
-		// TODO: compute engine token fallback
-		adc, err := auth.ReadApplicationDefaultCredentials()
+		ts := auth.TokenSource()
+		token, err := ts.Token()
 		if err != nil {
-			return fmt.Errorf("unable to read adc: %w", err)
+			return fmt.Errorf("unable to get token: %w", err)
 		}
 		output := &ConfigHelperOutput{
 			Credential: &ConfigHelperOutputCredential{
-				AccessToken: adc.AccessToken,
-				TokenExpiry: adc.AccessTokenExpiry,
+				AccessToken: token.AccessToken,
+				TokenExpiry: token.Expiry,
 			},
 		}
 		jsonEncoder := json.NewEncoder(cmd.OutOrStdout())
@@ -57,8 +57,8 @@ var configHelperCmd = &cobra.Command{
 				APIVersion: "client.authentication.k8s.io/v1",
 				Kind:       "ExecCredential",
 				Status: ExecCredentialStatus{
-					Token:               adc.AccessToken,
-					ExpirationTimestamp: adc.AccessTokenExpiry,
+					Token:               token.AccessToken,
+					ExpirationTimestamp: token.Expiry,
 				}}
 			err = jsonEncoder.Encode(outputv1)
 		} else {

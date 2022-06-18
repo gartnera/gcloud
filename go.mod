@@ -3,6 +3,7 @@ module github.com/gartnera/gcloud
 go 1.18
 
 require (
+	cloud.google.com/go v0.65.0 // indirect
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/spf13/cobra v1.4.0 // indirect

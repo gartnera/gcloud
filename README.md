@@ -4,9 +4,9 @@ This implementation of `gcloud` is incrementally adoptable, meaning that it will
 
 ## Install
 
-Regardless of your installation method, you need to make sure that this `gcloud` is higher in your $PATH than the `python` gcloud.
+Regardless of your installation method, you need to make sure that this `gcloud` is higher in your `$PATH` than the python `gcloud`.
 
-A good $PATH looks like this:
+A good `$PATH` looks like this (where this `gcloud` is in `/home/alex/go/bin`):
 
 ```
 echo $PATH

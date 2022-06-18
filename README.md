@@ -1,4 +1,4 @@
-The python `gcloud` has always sucked. It's slow, takes up a ~100MB of disk space, and annoying to install in CI/CD environments. But I've always tolerated it because it worked just well enough. That has changed recently with some super annoying changes ([1](https://issuetracker.google.com/issues/224754679), [2](https://cloud.google.com/blog/products/containers-kubernetes/kubectl-auth-changes-in-gke)) to `gcloud`. So let's fix it by reimplementing `gcloud` in go!
+The python `gcloud` has always sucked. It's slow, takes up a ~100MB of disk space, and annoying to install in CI/CD environments. But I've always tolerated it because it worked just well enough. That has changed recently with some super annoying changes ([1](https://issuetracker.google.com/issues/224754679), [2](https://cloud.google.com/blog/products/containers-kubernetes/kubectl-auth-changes-in-gke)). So let's fix it by reimplementing `gcloud` in go!
 
 This implementation of `gcloud` is incrementally adoptable, meaning that it will automatically fallback to python `gcloud` if we have not implemented a specific subcommand. My initial goal is to implement things I personally need for CI/CD in Linux environments. Contributions are welcome for other features and environments.
 
@@ -30,3 +30,16 @@ or
 ```
 wget -O - https://github.com/gartnera/gcloud/releases/download/v0.0.1/gcloud_0.0.1_linux_amd64.tar.gz | tar xz -C /usr/local/bin
 ```
+
+## Supported Commands
+
+- `gcloud auth application-default login` (code flow)
+- `gcloud auth application-default print-access-token`
+
+- `gcloud container clusters get-credentials`
+- `gcloud config config-helper --format=client.authentication.k8s.io/v1` (used by `gcloud container clusters get-credentials`)
+
+## Roadmap Commands
+
+- `gcloud auth configure-docker`
+- `gcloud auth docker-helper`

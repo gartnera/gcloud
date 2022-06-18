@@ -70,6 +70,7 @@ func maybeFallback() {
 			}
 			fmt.Printf("ERROR: %v", err)
 		}
+		os.Exit(0)
 		return
 	}
 }

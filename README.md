@@ -18,3 +18,15 @@ echo $PATH
 ```
 go install github.com/gartnera/gcloud@latest
 ```
+
+### Install from release
+
+```
+curl -L https://github.com/gartnera/gcloud/releases/download/v0.0.1/gcloud_0.0.1_linux_amd64.tar.gz | tar xz -C /usr/local/bin
+```
+
+or
+
+```
+wget -O - https://github.com/gartnera/gcloud/releases/download/v0.0.1/gcloud_0.0.1_linux_amd64.tar.gz | tar xz -C /usr/local/bin
+```

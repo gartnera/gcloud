@@ -12,6 +12,7 @@ func GetRootCmd() *cobra.Command {
 	if !rootCmdInitDone {
 		rootCmd.AddCommand(applicationDefaultCmd)
 		applicationDefaultCmd.AddCommand(applicationDefaultLoginCmd)
+		applicationDefaultCmd.AddCommand(applicationDefaultPrintAccessTokenCmd)
 		rootCmdInitDone = true
 	}
 	return rootCmd

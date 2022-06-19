@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 
 	container "cloud.google.com/go/container/apiv1"
+	"github.com/gartnera/gcloud/auth"
 	"github.com/spf13/cobra"
+	"google.golang.org/api/option"
 	containerpb "google.golang.org/genproto/googleapis/container/v1"
 	clientcmd "k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -27,7 +29,11 @@ var clustersGetCredentialsCmd = &cobra.Command{
 			return err
 		}
 		// for whatever reason, option.WithTokenSource(auth.TokenSource()) does not work here
-		client, err := container.NewClusterManagerClient(ctx)
+		ts, err := auth.TokenSource()
+		if err != nil {
+			return fmt.Errorf("unable to get token source: %w", err)
+		}
+		client, err := container.NewClusterManagerClient(ctx, option.WithTokenSource(ts))
 		if err != nil {
 			return fmt.Errorf("unable to get container client: %w", err)
 		}

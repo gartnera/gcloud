@@ -61,17 +61,15 @@ var applicationDefaultLoginCmd = &cobra.Command{
 		}
 
 		adc := &ApplicationCredentials{
-			ClientID:          conf.ClientID,
-			ClientSecret:      conf.ClientSecret,
-			QuotaProjectId:    quotaProject,
-			AccessToken:       tok.AccessToken,
-			AccessTokenExpiry: tok.Expiry.UTC(),
-			RefreshToken:      tok.RefreshToken,
-			AuthUri:           conf.Endpoint.AuthURL,
-			TokenUri:          conf.Endpoint.TokenURL,
-			Type:              "authorized_user",
+			ClientID:       conf.ClientID,
+			ClientSecret:   conf.ClientSecret,
+			QuotaProjectId: quotaProject,
+			RefreshToken:   tok.RefreshToken,
+			AuthUri:        conf.Endpoint.AuthURL,
+			TokenUri:       conf.Endpoint.TokenURL,
+			Type:           "authorized_user",
 		}
-		err = WriteApplicationDefaultCredentials(adc)
+		err = WriteApplicationCredentials(adc)
 		if err != nil {
 			return fmt.Errorf("unable to save application default credentials: %w", err)
 		}

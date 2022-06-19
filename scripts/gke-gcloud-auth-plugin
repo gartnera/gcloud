@@ -1,0 +1,3 @@
+#!/bin/bash
+
+exec gcloud config config-helper --format=client.authentication.k8s.io/v1

@@ -82,6 +82,7 @@ func (a *ApplicationCredentials) Token() (*oauth2.Token, error) {
 	if !a.AccessTokenExpiry.IsZero() && a.AccessTokenExpiry.After(time.Now()) {
 		return &oauth2.Token{
 			AccessToken: a.AccessToken,
+			Expiry:      a.AccessTokenExpiry,
 		}, nil
 	}
 

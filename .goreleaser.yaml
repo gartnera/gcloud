@@ -17,6 +17,9 @@ archives:
       - src: scripts/docker-credential-gcloud
         dst: "."
         strip_parent: true
+      - src: scripts/gke-gcloud-auth-plugin
+        dst: "."
+        strip_parent: true
 changelog:
   sort: asc
   filters:

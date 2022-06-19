@@ -78,14 +78,9 @@ var clustersGetCredentialsCmd = &cobra.Command{
 		}
 		kubeConfig.AuthInfos[kName] = &clientcmdapi.AuthInfo{
 			Exec: &clientcmdapi.ExecConfig{
-				Command:         "gcloud",
+				Command:         "gke-gcloud-auth-plugin",
 				APIVersion:      "client.authentication.k8s.io/v1",
 				InteractiveMode: clientcmdapi.NeverExecInteractiveMode,
-				Args: []string{
-					"config",
-					"config-helper",
-					"--format=client.authentication.k8s.io/v1",
-				},
 			},
 		}
 		kubeConfig.Contexts[kName] = &clientcmdapi.Context{

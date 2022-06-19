@@ -55,9 +55,9 @@ var configHelperCmd = &cobra.Command{
 		} else if outputFormat == "yaml" {
 			encoder := yaml.NewEncoder(cmd.OutOrStdout())
 			err = encoder.Encode(output)
-		} else if outputFormat == "client.authentication.k8s.io/v1" {
+		} else if outputFormat == "client.authentication.k8s.io/v1beta1" {
 			outputv1 := &ExecCredential{
-				APIVersion: "client.authentication.k8s.io/v1",
+				APIVersion: "client.authentication.k8s.io/v1beta1",
 				Kind:       "ExecCredential",
 				Status: ExecCredentialStatus{
 					Token:               token.AccessToken,

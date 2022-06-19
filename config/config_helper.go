@@ -35,7 +35,10 @@ var configHelperCmd = &cobra.Command{
 	Use: "config-helper",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		outputFormat, _ := cmd.Flags().GetString("format")
-		ts := auth.TokenSource()
+		ts, err := auth.TokenSource()
+		if err != nil {
+			return fmt.Errorf("unable to get tokensource: %w", err)
+		}
 		token, err := ts.Token()
 		if err != nil {
 			return fmt.Errorf("unable to get token: %w", err)

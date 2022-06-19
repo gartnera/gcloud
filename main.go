@@ -22,11 +22,11 @@ func gcloudFallback() error {
 	if err != nil {
 		return fmt.Errorf("unable to find gcloud: %w", err)
 	}
-	adc, err := auth.ReadApplicationDefaultCredentials()
+	ts, err := auth.TokenSource()
 	if err != nil {
-		return fmt.Errorf("unable to read google application credentials: %w", err)
+		return fmt.Errorf("unable to get tokensource: %w", err)
 	}
-	tok, err := adc.Token()
+	tok, err := ts.Token()
 	if err != nil {
 		return fmt.Errorf("unable to get access token: %w", err)
 	}

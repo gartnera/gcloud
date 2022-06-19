@@ -9,11 +9,12 @@ import (
 	"time"
 
 	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/jwt"
 )
 
-// ApplicationDefaultCredentials is the a struct representing the application_default_credentials.json format.
+// ApplicationCredentials is the a struct representing the application_default_credentials.json format.
 // We add access_token and access_token_expiry for easy token caching and refresh.
-type ApplicationDefaultCredentials struct {
+type ApplicationCredentials struct {
 	ClientID          string    `json:"client_id,omitempty"`
 	ClientSecret      string    `json:"client_secret,omitempty"`
 	QuotaProjectId    string    `json:"quota_project_id,omitempty"`
@@ -36,8 +37,7 @@ type ApplicationDefaultCredentials struct {
 	ctx context.Context
 }
 
-// Token ensures that we cache the access token
-func (a *ApplicationDefaultCredentials) Token() (*oauth2.Token, error) {
+func (a *ApplicationCredentials) userToken() (*oauth2.Token, error) {
 	conf := &oauth2.Config{
 		ClientID:     a.ClientID,
 		ClientSecret: a.ClientSecret,
@@ -49,7 +49,6 @@ func (a *ApplicationDefaultCredentials) Token() (*oauth2.Token, error) {
 		AccessToken:  a.AccessToken,
 		RefreshToken: a.RefreshToken,
 		Expiry:       a.AccessTokenExpiry,
-		TokenType:    "refresh_token",
 	}
 	ctx := a.ctx
 	if a.ctx == nil {
@@ -60,6 +59,43 @@ func (a *ApplicationDefaultCredentials) Token() (*oauth2.Token, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unable to get/refresh token: %w", err)
 	}
+	return tok, nil
+}
+
+func (a *ApplicationCredentials) serviceAccountToken() (*oauth2.Token, error) {
+	jwtConfig := &jwt.Config{
+		Email:        a.ClientEmail,
+		PrivateKey:   []byte(a.PrivateKey),
+		PrivateKeyID: a.PrivateKeyID,
+		Scopes:       []string{"https://www.googleapis.com/auth/cloud-platform"},
+		TokenURL:     a.TokenUri,
+	}
+	ts := jwtConfig.TokenSource(context.Background())
+	return ts.Token()
+}
+
+// Token ensures that we cache the access token.
+// You should probably be using auth.Token() which conditionally calls this.
+// This is slightly better than google.DefaultTokenSource because it has
+// caching.
+func (a *ApplicationCredentials) Token() (*oauth2.Token, error) {
+	if !a.AccessTokenExpiry.IsZero() && a.AccessTokenExpiry.After(time.Now()) {
+		return &oauth2.Token{
+			AccessToken: a.AccessToken,
+		}, nil
+	}
+
+	var tok *oauth2.Token
+	var err error
+	if a.Type == "authorized_user" {
+		tok, err = a.userToken()
+	} else {
+		tok, err = a.serviceAccountToken()
+	}
+	if err != nil {
+		return nil, fmt.Errorf("unable to get token: %w", err)
+	}
+
 	if tok.AccessToken != a.AccessToken {
 		a.AccessToken = tok.AccessToken
 		a.AccessTokenExpiry = tok.Expiry
@@ -70,7 +106,7 @@ func (a *ApplicationDefaultCredentials) Token() (*oauth2.Token, error) {
 }
 
 // SetContext allows you to set the context on token refresh operations
-func (a *ApplicationDefaultCredentials) SetContext(ctx context.Context) {
+func (a *ApplicationCredentials) SetContext(ctx context.Context) {
 	a.ctx = ctx
 }
 
@@ -90,7 +126,7 @@ func discoverAdcPath() string {
 }
 
 // WriteApplicationDefaultCredentials idempotently writes out the application default credentials to disk
-func WriteApplicationDefaultCredentials(adc *ApplicationDefaultCredentials) error {
+func WriteApplicationDefaultCredentials(adc *ApplicationCredentials) error {
 	adcPath := discoverAdcPath()
 	tmpPath := adcPath + ".tmp"
 	adcFile, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
@@ -110,14 +146,14 @@ func WriteApplicationDefaultCredentials(adc *ApplicationDefaultCredentials) erro
 	return nil
 }
 
-func ReadApplicationDefaultCredentials() (*ApplicationDefaultCredentials, error) {
+func ReadApplicationDefaultCredentials() (*ApplicationCredentials, error) {
 	adcPath := discoverAdcPath()
 	adcFile, err := os.Open(adcPath)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open adc file path: %w", err)
 	}
 	adcDecoder := json.NewDecoder(adcFile)
-	adc := &ApplicationDefaultCredentials{}
+	adc := &ApplicationCredentials{}
 	err = adcDecoder.Decode(adc)
 	if err != nil {
 		return nil, fmt.Errorf("unable to decode adc: %w", err)

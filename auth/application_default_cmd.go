@@ -60,7 +60,7 @@ var applicationDefaultLoginCmd = &cobra.Command{
 			return fmt.Errorf("unable to exchange code: %w", err)
 		}
 
-		adc := &ApplicationDefaultCredentials{
+		adc := &ApplicationCredentials{
 			ClientID:          conf.ClientID,
 			ClientSecret:      conf.ClientSecret,
 			QuotaProjectId:    quotaProject,
@@ -83,11 +83,11 @@ var applicationDefaultLoginCmd = &cobra.Command{
 var applicationDefaultPrintAccessTokenCmd = &cobra.Command{
 	Use: "print-access-token",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		adc, err := ReadApplicationDefaultCredentials()
+		ts, err := TokenSource()
 		if err != nil {
-			return fmt.Errorf("unable to load application default credentials: %w", err)
+			return fmt.Errorf("unable to get tokensource: %w", err)
 		}
-		tok, err := adc.Token()
+		tok, err := ts.Token()
 		if err != nil {
 			return fmt.Errorf("unable to get token: %w", err)
 		}

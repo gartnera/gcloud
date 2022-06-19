@@ -13,22 +13,24 @@ echo $PATH
 /home/alex/go/bin:/opt/google-cloud-sdk/bin/
 ```
 
-### Install with go
-
-```
-go install github.com/gartnera/gcloud@latest
-```
+If you do not install via the release, you must manually install `scripts/docker-credential-gcloud`.
 
 ### Install from release
 
 ```
-curl -L https://github.com/gartnera/gcloud/releases/download/v0.0.1/gcloud_0.0.1_linux_amd64.tar.gz | tar xz -C /usr/local/bin
+curl -L https://github.com/gartnera/gcloud/releases/download/v0.0.7/gcloud_0.0.7_linux_amd64.tar.gz | tar xz -C /usr/local/bin
 ```
 
 or
 
 ```
-wget -O - https://github.com/gartnera/gcloud/releases/download/v0.0.1/gcloud_0.0.1_linux_amd64.tar.gz | tar xz -C /usr/local/bin
+wget -O - https://github.com/gartnera/gcloud/releases/download/v0.0.7/gcloud_0.0.7_linux_amd64.tar.gz | tar xz -C /usr/local/bin
+```
+
+### Install with go
+
+```
+go install github.com/gartnera/gcloud@latest
 ```
 
 ## Supported Commands

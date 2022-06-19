@@ -12,6 +12,11 @@ builds:
       - arm64
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
+archives:
+  - files:
+      - src: scripts/docker-credential-gcloud
+        dst: "."
+        strip_parent: true
 changelog:
   sort: asc
   filters:

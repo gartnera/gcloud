@@ -68,7 +68,7 @@ func maybeFallback() {
 			if errors.As(err, &exerr) {
 				os.Exit(exerr.ExitCode())
 			}
-			fmt.Printf("ERROR: %v", err)
+			fmt.Printf("Error: %v\n", err)
 		}
 		os.Exit(0)
 		return

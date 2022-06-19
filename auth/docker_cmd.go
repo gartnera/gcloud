@@ -24,6 +24,9 @@ var configureDockerCmd = &cobra.Command{
 				return fmt.Errorf("unable to load docker config file: %w", err)
 			}
 		}
+		if config.CredentialHelpers == nil {
+			config.CredentialHelpers = make(map[string]string)
+		}
 		for _, hostname := range args {
 			config.CredentialHelpers[hostname] = "gcloud"
 		}

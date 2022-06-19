@@ -33,12 +33,17 @@ wget -O - https://github.com/gartnera/gcloud/releases/download/v0.0.7/gcloud_0.0
 go install github.com/gartnera/gcloud@latest
 ```
 
-## Supported Commands
+## Current Commands
 
 - `gcloud auth application-default login` (code flow)
 - `gcloud auth application-default print-access-token`
+- `gcloud auth print-access-token`
 - `gcloud auth configure-docker`
 - `gcloud auth docker-helper`
 
 - `gcloud container clusters get-credentials`
 - `gcloud config config-helper --format=client.authentication.k8s.io/v1` (used by `gcloud container clusters get-credentials`)
+
+## Current Features
+
+- service account impersonation via `GOOGLE_IMPERSONATE_SERVICE_ACCOUNT`

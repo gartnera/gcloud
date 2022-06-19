@@ -30,6 +30,8 @@ func gcloudFallback() error {
 	if err != nil {
 		return fmt.Errorf("unable to get access token: %w", err)
 	}
+	// write our access token out to a file so caching and impersonation works nicely.
+	// maybe we should have the TokenSource manage the access token file?
 	tokenFile, err := os.CreateTemp("", "gcloud-token-*")
 	if err != nil {
 		return fmt.Errorf("unable to create token file: %w", err)

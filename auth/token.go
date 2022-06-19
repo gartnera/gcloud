@@ -12,6 +12,8 @@ import (
 	"github.com/kirsle/configdir"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/api/impersonate"
+	"google.golang.org/api/option"
 )
 
 type TokenSourceWithCacheKey interface {
@@ -21,29 +23,49 @@ type TokenSourceWithCacheKey interface {
 
 // TokenSource returns a cached application default credentials or falls back to the compute token source
 func TokenSource() (oauth2.TokenSource, error) {
-	return NewCachingTokenSource(context.Background())
+	return maybeGetImpersonatedTokenSource(context.Background())
 }
 
 func Token() (*oauth2.Token, error) {
 	ts, err := TokenSource()
 	if err != nil {
-		return nil, fmt.Errorf("unable to get tokensource: %w", err)
+		return nil, fmt.Errorf("unable to get token: %w", err)
 	}
 	return ts.Token()
 }
 
-func NewCachingTokenSource(ctx context.Context) (oauth2.TokenSource, error) {
+func maybeGetImpersonatedTokenSource(ctx context.Context) (oauth2.TokenSource, error) {
+	mainTs, err := getMainTokenSource(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get main tokensource: %w", err)
+	}
+	email := os.Getenv("GOOGLE_IMPERSONATE_SERVICE_ACCOUNT")
+	if email != "" {
+		impersonateTs, err := NewGoogleImpersonateTokenSourceWrapper(ctx, email, mainTs)
+		if err != nil {
+			return nil, err
+		}
+		return NewCachingTokenSource(impersonateTs)
+	}
+	return mainTs, nil
+}
+
+func getMainTokenSource(ctx context.Context) (oauth2.TokenSource, error) {
 	var ts TokenSourceWithCacheKey
 	var err error
 	ts, err = ReadApplicationCredentials()
 	if err != nil {
-		ts, err = NewGoogleComputeTokenSourceWrapper(context.Background())
+		ts, err = NewGoogleComputeTokenSourceWrapper(ctx)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("unable to get tokensource: %w", err)
 	}
+	return NewCachingTokenSource(ts)
+}
+
+func NewCachingTokenSource(ts TokenSourceWithCacheKey) (oauth2.TokenSource, error) {
 	cacheDir := configdir.LocalCache("gcloud-gartnera-tokens")
-	err = os.MkdirAll(cacheDir, 0755)
+	err := os.MkdirAll(cacheDir, 0755)
 	if err != nil {
 		return nil, fmt.Errorf("unable to ensure token cache directory: %w", err)
 	}
@@ -57,7 +79,7 @@ type CachingTokenSource struct {
 	ts       TokenSourceWithCacheKey
 	cacheDir string
 	tok      *oauth2.Token
-	lock     sync.RWMutex
+	lock     sync.Mutex
 }
 
 func (c *CachingTokenSource) tokenFromDisk() (*oauth2.Token, error) {
@@ -150,4 +172,32 @@ func (m *GoogleComputeTokenSourceWrapper) Token() (*oauth2.Token, error) {
 
 func (m *GoogleComputeTokenSourceWrapper) CacheKey() string {
 	return "compute-metadata"
+}
+
+func NewGoogleImpersonateTokenSourceWrapper(ctx context.Context, email string, parentTs oauth2.TokenSource) (*GoogleImpersonateTokenSourceWrapper, error) {
+	config := impersonate.CredentialsConfig{
+		TargetPrincipal: email,
+		Scopes:          []string{"https://www.googleapis.com/auth/cloud-platform"},
+	}
+	ts, err := impersonate.CredentialsTokenSource(ctx, config, option.WithTokenSource(parentTs))
+	if err != nil {
+		return nil, fmt.Errorf("unable to get impersonated token source: %w", err)
+	}
+	return &GoogleImpersonateTokenSourceWrapper{
+		ts:    ts,
+		email: email,
+	}, nil
+}
+
+type GoogleImpersonateTokenSourceWrapper struct {
+	ts    oauth2.TokenSource
+	email string
+}
+
+func (m *GoogleImpersonateTokenSourceWrapper) Token() (*oauth2.Token, error) {
+	return m.ts.Token()
+}
+
+func (m *GoogleImpersonateTokenSourceWrapper) CacheKey() string {
+	return m.email
 }

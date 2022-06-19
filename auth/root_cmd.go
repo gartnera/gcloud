@@ -15,6 +15,7 @@ func GetRootCmd() *cobra.Command {
 		applicationDefaultCmd.AddCommand(applicationDefaultPrintAccessTokenCmd)
 
 		rootCmd.AddCommand(configureDockerCmd)
+		rootCmd.AddCommand(dockerHelperCmd)
 		rootCmdInitDone = true
 	}
 	return rootCmd

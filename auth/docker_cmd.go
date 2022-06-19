@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -33,5 +34,32 @@ var configureDockerCmd = &cobra.Command{
 		}
 
 		return nil
+	},
+}
+
+type DockerHelperRes struct {
+	Secret   string
+	Username string
+}
+
+var dockerHelperCmd = &cobra.Command{
+	Use: "docker-helper",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		// ignore all operations except for get
+		if len(args) > 0 && args[0] != "get" {
+			return nil
+		}
+		tok, err := Token()
+		if err != nil {
+			return fmt.Errorf("unable to get token: %w", err)
+		}
+
+		res := &DockerHelperRes{
+			Secret:   tok.AccessToken,
+			Username: "_dcgcloud_token",
+		}
+
+		encoder := json.NewEncoder(cmd.OutOrStdout())
+		return encoder.Encode(res)
 	},
 }

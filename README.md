@@ -35,11 +35,8 @@ wget -O - https://github.com/gartnera/gcloud/releases/download/v0.0.1/gcloud_0.0
 
 - `gcloud auth application-default login` (code flow)
 - `gcloud auth application-default print-access-token`
+- `gcloud auth configure-docker`
+- `gcloud auth docker-helper`
 
 - `gcloud container clusters get-credentials`
 - `gcloud config config-helper --format=client.authentication.k8s.io/v1` (used by `gcloud container clusters get-credentials`)
-
-## Roadmap Commands
-
-- `gcloud auth configure-docker`
-- `gcloud auth docker-helper`

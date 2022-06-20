@@ -4,7 +4,9 @@ go 1.18
 
 require (
 	cloud.google.com/go/container v1.2.0
+	github.com/augustoroman/hexdump v0.0.0-20190827031536-6506f4163e93
 	github.com/docker/cli v20.10.17+incompatible
+	github.com/gorilla/websocket v1.5.0
 	github.com/kirsle/configdir v0.0.0-20170128060238-e45d2f54772f
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/pflag v1.0.5
@@ -14,6 +16,8 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/client-go v0.24.2
 )
+
+require github.com/pmezard/go-difflib v1.0.0 // indirect
 
 require (
 	cloud.google.com/go/compute v1.6.1 // indirect
@@ -34,8 +38,10 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
+	github.com/stretchr/testify v1.7.2
 	go.opencensus.io v0.23.0 // indirect
-	golang.org/x/net v0.0.0-20220607020251-c690dde0001d // indirect
+	golang.org/x/net v0.0.0-20220617184016-355a448f1bc9 // indirect
+	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 	golang.org/x/sys v0.0.0-20220610221304-9f5ed59c137d // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect

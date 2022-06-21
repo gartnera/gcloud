@@ -34,12 +34,18 @@ func Token() (*oauth2.Token, error) {
 	return ts.Token()
 }
 
+// easily impersonate a service account and maintain the TokenSource interface
+var ImpersonateServiceAccount = ""
+
 func maybeGetImpersonatedTokenSource(ctx context.Context) (oauth2.TokenSource, error) {
 	mainTs, err := getMainTokenSource(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get main tokensource: %w", err)
 	}
 	email := os.Getenv("GOOGLE_IMPERSONATE_SERVICE_ACCOUNT")
+	if email == "" {
+		email = ImpersonateServiceAccount
+	}
 	if email != "" {
 		impersonateTs, err := NewGoogleImpersonateTokenSourceWrapper(ctx, email, mainTs)
 		if err != nil {

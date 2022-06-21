@@ -15,6 +15,9 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use: "gcloud <command> [command-flags] [command-args]",
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		auth.ImpersonateServiceAccount, _ = cmd.Flags().GetString("impersonate-service-account")
+	},
 }
 
 func gcloudFallback() error {
@@ -78,6 +81,7 @@ func maybeFallback() {
 }
 
 func main() {
+	rootCmd.PersistentFlags().String("impersonate-service-account", "", "service account email to impersonate")
 	rootCmd.AddCommand(auth.GetRootCmd())
 	rootCmd.AddCommand(config.GetRootCmd())
 	rootCmd.AddCommand(container.GetRootCmd())

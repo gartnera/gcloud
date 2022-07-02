@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/kirsle/configdir"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -19,6 +20,38 @@ import (
 type TokenSourceWithCacheKey interface {
 	Token() (*oauth2.Token, error)
 	CacheKey() string
+}
+
+type identityToken struct {
+	AccessToken  string    `json:"access_token"`
+	TokenType    string    `json:"token_type,omitempty"`
+	RefreshToken string    `json:"refresh_token,omitempty"`
+	Expiry       time.Time `json:"expiry,omitempty"`
+	IdToken      string    `json:"id_token,omitempty"`
+}
+
+func tokenToIdentityToken(token *oauth2.Token) *identityToken {
+	idToken, _ := token.Extra("id_token").(string)
+	return &identityToken{
+		AccessToken:  token.AccessToken,
+		TokenType:    token.TokenType,
+		RefreshToken: token.RefreshToken,
+		Expiry:       token.Expiry,
+		IdToken:      idToken,
+	}
+}
+
+func identityTokenToToken(token *identityToken, isIdentity bool) *oauth2.Token {
+	accessToken := token.AccessToken
+	if isIdentity {
+		accessToken = token.IdToken
+	}
+	return &oauth2.Token{
+		AccessToken:  accessToken,
+		TokenType:    token.TokenType,
+		RefreshToken: token.RefreshToken,
+		Expiry:       token.Expiry,
+	}
 }
 
 // TokenSource returns a cached application default credentials or falls back to the compute token source
@@ -78,17 +111,19 @@ func NewCachingTokenSource(ts TokenSourceWithCacheKey) (*CachingTokenSource, err
 	return &CachingTokenSource{
 		ts:       ts,
 		cacheDir: cacheDir,
+		lock:     &sync.Mutex{},
 	}, nil
 }
 
 type CachingTokenSource struct {
-	ts       TokenSourceWithCacheKey
-	cacheDir string
-	tok      *oauth2.Token
-	lock     sync.Mutex
+	ts            TokenSourceWithCacheKey
+	cacheDir      string
+	tok           *identityToken
+	lock          *sync.Mutex
+	returnIdToken bool
 }
 
-func (c *CachingTokenSource) tokenFromDisk() (*oauth2.Token, error) {
+func (c *CachingTokenSource) tokenFromDisk() (*identityToken, error) {
 	cacheKey := c.ts.CacheKey()
 
 	cachePath := path.Join(c.cacheDir, fmt.Sprintf("%s.json", cacheKey))
@@ -101,7 +136,7 @@ func (c *CachingTokenSource) tokenFromDisk() (*oauth2.Token, error) {
 		return nil, fmt.Errorf("unable to open cache file: %w", err)
 	}
 	defer cacheFile.Close()
-	tok := &oauth2.Token{}
+	tok := &identityToken{}
 	tokDecoder := json.NewDecoder(cacheFile)
 	err = tokDecoder.Decode(tok)
 	if err != nil {
@@ -110,7 +145,7 @@ func (c *CachingTokenSource) tokenFromDisk() (*oauth2.Token, error) {
 	return tok, nil
 }
 
-func (c *CachingTokenSource) tokenToDisk(tok *oauth2.Token) error {
+func (c *CachingTokenSource) tokenToDisk(tok *identityToken) error {
 	cacheKey := c.ts.CacheKey()
 
 	jsonCachePath := path.Join(c.cacheDir, fmt.Sprintf("%s.json", cacheKey))
@@ -172,18 +207,32 @@ func (c *CachingTokenSource) Token() (*oauth2.Token, error) {
 		return nil, err
 	}
 	if c.tok != nil && c.tok.Expiry.After(time.Now()) {
-		return c.tok, nil
+		return identityTokenToToken(c.tok, c.returnIdToken), nil
 	}
 
-	c.tok, err = c.ts.Token()
+	tok, err := c.ts.Token()
 	if err != nil {
 		return nil, fmt.Errorf("unable to get token: %w", err)
 	}
+	c.tok = tokenToIdentityToken(tok)
+	spew.Dump(c.tok)
 	err = c.tokenToDisk(c.tok)
 	if err != nil {
 		return nil, fmt.Errorf("unable to write token to disk: %w", err)
 	}
-	return c.tok, nil
+	return identityTokenToToken(c.tok, c.returnIdToken), nil
+}
+
+// IdentityTokenSource clones the current token source and configured
+// the clone to return the identity token in the AccessToken field
+func (c *CachingTokenSource) IdentityTokenSource() *CachingTokenSource {
+	return &CachingTokenSource{
+		ts:            c.ts,
+		cacheDir:      c.cacheDir,
+		tok:           c.tok,
+		lock:          c.lock,
+		returnIdToken: true,
+	}
 }
 
 func NewGoogleComputeTokenSourceWrapper(ctx context.Context) (*GoogleComputeTokenSourceWrapper, error) {

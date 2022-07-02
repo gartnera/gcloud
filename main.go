@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/gartnera/gcloud/auth"
 	"github.com/gartnera/gcloud/config"
@@ -20,24 +21,40 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-func gcloudFallback() error {
+func stripImpersonate(args []string) []string {
+	var res []string
+	for _, arg := range args {
+		if strings.Contains(arg, "impersonate-service-account") {
+			continue
+		}
+		res = append(res, arg)
+	}
+	return res
+}
+
+func gcloudFallback(shareToken bool) error {
 	gcloudPath, err := helpers.LookPathPreamble("gcloud", "#!/bin/sh")
 	if err != nil {
 		return fmt.Errorf("unable to find gcloud: %w", err)
 	}
-	ts, err := auth.TokenSource()
-	if err != nil {
-		return fmt.Errorf("unable to get tokensource: %w", err)
-	}
-	// ensure we have a valid token
-	_, err = ts.Token()
-	if err != nil {
-		return fmt.Errorf("unable to get access token: %w", err)
-	}
+	args := os.Args[1:]
+	if shareToken {
+		args = stripImpersonate(args)
+		ts, err := auth.TokenSource()
+		if err != nil {
+			return fmt.Errorf("unable to get tokensource: %w", err)
+		}
+		// ensure we have a valid token
+		_, err = ts.Token()
+		if err != nil {
+			return fmt.Errorf("unable to get access token: %w", err)
+		}
 
-	accessTokenArg := fmt.Sprintf("--access-token-file=%s", ts.GetAccessTokenPath())
-	args := []string{accessTokenArg}
-	args = append(args, os.Args[1:]...)
+		accessTokenArg := fmt.Sprintf("--access-token-file=%s", ts.GetAccessTokenPath())
+		accessTokenArgs := []string{accessTokenArg}
+		args = append(accessTokenArgs, args...)
+	}
+	args = append([]string{os.Args[0]}, args...)
 
 	cmd := exec.Cmd{
 		Path:   gcloudPath,
@@ -50,22 +67,25 @@ func gcloudFallback() error {
 	return cmd.Run()
 }
 
+func gcloudFallbackExit(useToken bool) {
+	err := gcloudFallback(useToken)
+	if err != nil {
+		var exerr *exec.ExitError
+		if errors.As(err, &exerr) {
+			os.Exit(exerr.ExitCode())
+		}
+		fmt.Printf("Error: %v\n", err)
+	}
+	os.Exit(0)
+}
+
 func maybeFallback() {
 	if os.Getenv("GCLOUD_NO_FALLBACK") != "" {
 		return
 	}
 	targetCmd, _, _ := rootCmd.Find(os.Args[1:])
 	if targetCmd == nil || targetCmd == rootCmd || len(targetCmd.Commands()) > 0 {
-		err := gcloudFallback()
-		if err != nil {
-			var exerr *exec.ExitError
-			if errors.As(err, &exerr) {
-				os.Exit(exerr.ExitCode())
-			}
-			fmt.Printf("Error: %v\n", err)
-		}
-		os.Exit(0)
-		return
+		gcloudFallbackExit(true)
 	}
 }
 
@@ -81,6 +101,13 @@ func main() {
 
 	err := rootCmd.Execute()
 	if err != nil {
+		// we matched commands, but don' implement what the user has requested
+		if err == helpers.ErrFallback {
+			gcloudFallbackExit(true)
+		}
+		if err == helpers.ErrFallbackNoToken {
+			gcloudFallbackExit(false)
+		}
 		os.Exit(1)
 	}
 }

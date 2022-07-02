@@ -10,9 +10,9 @@ require (
 	github.com/kirsle/configdir v0.0.0-20170128060238-e45d2f54772f
 	github.com/spf13/cobra v1.4.0
 	github.com/spf13/pflag v1.0.5
-	golang.org/x/oauth2 v0.0.0-20220608161450-d0670ef3b1eb
-	google.golang.org/api v0.84.0
-	google.golang.org/genproto v0.0.0-20220608133413-ed9918b62aac
+	golang.org/x/oauth2 v0.0.0-20220622183110-fd043fe589d2
+	google.golang.org/api v0.86.0
+	google.golang.org/genproto v0.0.0-20220624142145-8cd45d7dbd1f
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/client-go v0.24.2
 )
@@ -20,7 +20,7 @@ require (
 require github.com/pmezard/go-difflib v1.0.0 // indirect
 
 require (
-	cloud.google.com/go/compute v1.6.1 // indirect
+	cloud.google.com/go/compute v1.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/docker-credential-helpers v0.6.4 // indirect
 	github.com/go-logr/logr v1.2.0 // indirect
@@ -29,7 +29,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.8 // indirect
 	github.com/google/gofuzz v1.1.0 // indirect
-	github.com/googleapis/enterprise-certificate-proxy v0.0.0-20220520183353-fd19c99a87aa // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.1.0 // indirect
 	github.com/googleapis/gax-go/v2 v2.4.0 // indirect
 	github.com/imdario/mergo v0.3.5 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
@@ -40,9 +40,9 @@ require (
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/stretchr/testify v1.7.2
 	go.opencensus.io v0.23.0 // indirect
-	golang.org/x/net v0.0.0-20220617184016-355a448f1bc9 // indirect
+	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
-	golang.org/x/sys v0.0.0-20220610221304-9f5ed59c137d // indirect
+	golang.org/x/sys v0.0.0-20220624220833-87e55d714810 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect

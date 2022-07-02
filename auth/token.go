@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/kirsle/configdir"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/api/idtoken"
 	"google.golang.org/api/impersonate"
 	"google.golang.org/api/option"
 )
@@ -121,10 +121,15 @@ type CachingTokenSource struct {
 	tok           *identityToken
 	lock          *sync.Mutex
 	returnIdToken bool
+	cachePrefix   string
+}
+
+func (c *CachingTokenSource) cacheKey() string {
+	return c.cachePrefix + c.ts.CacheKey()
 }
 
 func (c *CachingTokenSource) tokenFromDisk() (*identityToken, error) {
-	cacheKey := c.ts.CacheKey()
+	cacheKey := c.cacheKey()
 
 	cachePath := path.Join(c.cacheDir, fmt.Sprintf("%s.json", cacheKey))
 	if _, err := os.Stat(cachePath); os.IsNotExist(err) {
@@ -146,7 +151,7 @@ func (c *CachingTokenSource) tokenFromDisk() (*identityToken, error) {
 }
 
 func (c *CachingTokenSource) tokenToDisk(tok *identityToken) error {
-	cacheKey := c.ts.CacheKey()
+	cacheKey := c.cacheKey()
 
 	jsonCachePath := path.Join(c.cacheDir, fmt.Sprintf("%s.json", cacheKey))
 	jsonCachePathTmp := jsonCachePath + ".tmp"
@@ -189,7 +194,7 @@ func (c *CachingTokenSource) tokenToDisk(tok *identityToken) error {
 }
 
 func (c *CachingTokenSource) GetAccessTokenPath() string {
-	cacheKey := c.ts.CacheKey()
+	cacheKey := c.cacheKey()
 
 	return path.Join(c.cacheDir, cacheKey)
 }
@@ -215,7 +220,6 @@ func (c *CachingTokenSource) Token() (*oauth2.Token, error) {
 		return nil, fmt.Errorf("unable to get token: %w", err)
 	}
 	c.tok = tokenToIdentityToken(tok)
-	spew.Dump(c.tok)
 	err = c.tokenToDisk(c.tok)
 	if err != nil {
 		return nil, fmt.Errorf("unable to write token to disk: %w", err)
@@ -224,7 +228,8 @@ func (c *CachingTokenSource) Token() (*oauth2.Token, error) {
 }
 
 // IdentityTokenSource clones the current token source and configured
-// the clone to return the identity token in the AccessToken field
+// the clone to return the identity token in the AccessToken field.
+// this only works with user accounts.
 func (c *CachingTokenSource) IdentityTokenSource() *CachingTokenSource {
 	return &CachingTokenSource{
 		ts:            c.ts,
@@ -235,26 +240,48 @@ func (c *CachingTokenSource) IdentityTokenSource() *CachingTokenSource {
 	}
 }
 
-func NewGoogleComputeTokenSourceWrapper(ctx context.Context) (*GoogleComputeTokenSourceWrapper, error) {
-	ts := google.ComputeTokenSource("", "https://www.googleapis.com/auth/cloud-platform")
-	return &GoogleComputeTokenSourceWrapper{
-		ts: ts,
-	}, nil
+// IdentityTokenSource gets a cached idtoken source. This can only be
+// used with service accounts
+func IdentityTokenSource(aud string) (*CachingTokenSource, error) {
+	// get a normal token source to get the cache key
+	accessTokenSource, err := TokenSource()
+	if err != nil {
+		return nil, fmt.Errorf("unable to get access token source: %w", err)
+	}
+
+	ts, err := idtoken.NewTokenSource(context.Background(), aud)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get token source: %w", err)
+	}
+	wrapper := &tokenSourceWrapper{
+		ts:       ts,
+		cacheKey: fmt.Sprintf("%s-%s", aud, accessTokenSource.cacheKey()),
+	}
+	return NewCachingTokenSource(wrapper)
 }
 
-type GoogleComputeTokenSourceWrapper struct {
-	ts oauth2.TokenSource
+type tokenSourceWrapper struct {
+	ts       oauth2.TokenSource
+	cacheKey string
 }
 
-func (m *GoogleComputeTokenSourceWrapper) Token() (*oauth2.Token, error) {
+func (m *tokenSourceWrapper) Token() (*oauth2.Token, error) {
 	return m.ts.Token()
 }
 
-func (m *GoogleComputeTokenSourceWrapper) CacheKey() string {
-	return "compute-metadata"
+func (m *tokenSourceWrapper) CacheKey() string {
+	return m.cacheKey
 }
 
-func NewGoogleImpersonateTokenSourceWrapper(ctx context.Context, email string, parentTs oauth2.TokenSource) (*GoogleImpersonateTokenSourceWrapper, error) {
+func NewGoogleComputeTokenSourceWrapper(ctx context.Context) (*tokenSourceWrapper, error) {
+	ts := google.ComputeTokenSource("", "https://www.googleapis.com/auth/cloud-platform")
+	return &tokenSourceWrapper{
+		ts:       ts,
+		cacheKey: "compute-metadata",
+	}, nil
+}
+
+func NewGoogleImpersonateTokenSourceWrapper(ctx context.Context, email string, parentTs oauth2.TokenSource) (*tokenSourceWrapper, error) {
 	config := impersonate.CredentialsConfig{
 		TargetPrincipal: email,
 		Scopes:          []string{"https://www.googleapis.com/auth/cloud-platform"},
@@ -263,21 +290,8 @@ func NewGoogleImpersonateTokenSourceWrapper(ctx context.Context, email string, p
 	if err != nil {
 		return nil, fmt.Errorf("unable to get impersonated token source: %w", err)
 	}
-	return &GoogleImpersonateTokenSourceWrapper{
-		ts:    ts,
-		email: email,
+	return &tokenSourceWrapper{
+		ts:       ts,
+		cacheKey: email,
 	}, nil
-}
-
-type GoogleImpersonateTokenSourceWrapper struct {
-	ts    oauth2.TokenSource
-	email string
-}
-
-func (m *GoogleImpersonateTokenSourceWrapper) Token() (*oauth2.Token, error) {
-	return m.ts.Token()
-}
-
-func (m *GoogleImpersonateTokenSourceWrapper) CacheKey() string {
-	return m.email
 }

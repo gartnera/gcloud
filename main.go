@@ -29,24 +29,13 @@ func gcloudFallback() error {
 	if err != nil {
 		return fmt.Errorf("unable to get tokensource: %w", err)
 	}
-	tok, err := ts.Token()
+	// ensure we have a valid token
+	_, err = ts.Token()
 	if err != nil {
 		return fmt.Errorf("unable to get access token: %w", err)
 	}
-	// write our access token out to a file so caching and impersonation works nicely.
-	// maybe we should have the TokenSource manage the access token file?
-	tokenFile, err := os.CreateTemp("", "gcloud-token-*")
-	if err != nil {
-		return fmt.Errorf("unable to create token file: %w", err)
-	}
-	defer os.Remove(tokenFile.Name())
-	_, err = tokenFile.WriteString(tok.AccessToken)
-	if err != nil {
-		return fmt.Errorf("unable to write token to file: %w", err)
-	}
-	_ = tokenFile.Close()
 
-	accessTokenArg := fmt.Sprintf("--access-token-file=%s", tokenFile.Name())
+	accessTokenArg := fmt.Sprintf("--access-token-file=%s", ts.GetAccessTokenPath())
 	args := []string{accessTokenArg}
 	args = append(args, os.Args[1:]...)
 

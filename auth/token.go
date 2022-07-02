@@ -22,7 +22,7 @@ type TokenSourceWithCacheKey interface {
 }
 
 // TokenSource returns a cached application default credentials or falls back to the compute token source
-func TokenSource() (oauth2.TokenSource, error) {
+func TokenSource() (*CachingTokenSource, error) {
 	return maybeGetImpersonatedTokenSource(context.Background())
 }
 
@@ -37,7 +37,7 @@ func Token() (*oauth2.Token, error) {
 // easily impersonate a service account and maintain the TokenSource interface
 var ImpersonateServiceAccount = ""
 
-func maybeGetImpersonatedTokenSource(ctx context.Context) (oauth2.TokenSource, error) {
+func maybeGetImpersonatedTokenSource(ctx context.Context) (*CachingTokenSource, error) {
 	mainTs, err := getMainTokenSource(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get main tokensource: %w", err)
@@ -56,7 +56,7 @@ func maybeGetImpersonatedTokenSource(ctx context.Context) (oauth2.TokenSource, e
 	return mainTs, nil
 }
 
-func getMainTokenSource(ctx context.Context) (oauth2.TokenSource, error) {
+func getMainTokenSource(ctx context.Context) (*CachingTokenSource, error) {
 	var ts TokenSourceWithCacheKey
 	var err error
 	ts, err = ReadApplicationCredentials()
@@ -69,7 +69,7 @@ func getMainTokenSource(ctx context.Context) (oauth2.TokenSource, error) {
 	return NewCachingTokenSource(ts)
 }
 
-func NewCachingTokenSource(ts TokenSourceWithCacheKey) (oauth2.TokenSource, error) {
+func NewCachingTokenSource(ts TokenSourceWithCacheKey) (*CachingTokenSource, error) {
 	cacheDir := configdir.LocalCache("gcloud-gartnera-tokens")
 	err := os.MkdirAll(cacheDir, 0755)
 	if err != nil {
@@ -113,25 +113,50 @@ func (c *CachingTokenSource) tokenFromDisk() (*oauth2.Token, error) {
 func (c *CachingTokenSource) tokenToDisk(tok *oauth2.Token) error {
 	cacheKey := c.ts.CacheKey()
 
-	cachePath := path.Join(c.cacheDir, fmt.Sprintf("%s.json", cacheKey))
-	cachePathTmp := cachePath + ".tmp"
+	jsonCachePath := path.Join(c.cacheDir, fmt.Sprintf("%s.json", cacheKey))
+	jsonCachePathTmp := jsonCachePath + ".tmp"
 
-	cacheFile, err := os.OpenFile(cachePathTmp, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	jsonCacheFile, err := os.OpenFile(jsonCachePathTmp, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
 		return fmt.Errorf("unable to open cache file: %w", err)
 	}
-	defer cacheFile.Close()
-	tokDecoder := json.NewEncoder(cacheFile)
-	err = tokDecoder.Encode(tok)
+	defer jsonCacheFile.Close()
+	tokEncoder := json.NewEncoder(jsonCacheFile)
+	err = tokEncoder.Encode(tok)
 	if err != nil {
 		return fmt.Errorf("unable to encode token: %w", err)
 	}
-	cacheFile.Close()
-	err = os.Rename(cachePathTmp, cachePath)
+	jsonCacheFile.Close()
+	err = os.Rename(jsonCachePathTmp, jsonCachePath)
+	if err != nil {
+		return fmt.Errorf("unable to rename tmpfile: %w", err)
+	}
+
+	// also write out the raw token for use in fallback
+	rawCachePath := c.GetAccessTokenPath()
+	rawCachePathTmp := rawCachePath + ".tmp"
+
+	rawCacheFile, err := os.OpenFile(rawCachePathTmp, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	if err != nil {
+		return fmt.Errorf("unable to open cache file: %w", err)
+	}
+	defer rawCacheFile.Close()
+	_, err = rawCacheFile.WriteString(tok.AccessToken)
+	if err != nil {
+		return fmt.Errorf("unable to write token to cache file: %w", err)
+	}
+	rawCacheFile.Close()
+	err = os.Rename(rawCachePathTmp, rawCachePath)
 	if err != nil {
 		return fmt.Errorf("unable to rename tmpfile: %w", err)
 	}
 	return nil
+}
+
+func (c *CachingTokenSource) GetAccessTokenPath() string {
+	cacheKey := c.ts.CacheKey()
+
+	return path.Join(c.cacheDir, cacheKey)
 }
 
 func (c *CachingTokenSource) Token() (*oauth2.Token, error) {

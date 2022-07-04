@@ -92,7 +92,7 @@ func maybeGetImpersonatedTokenSource(ctx context.Context) (*CachingTokenSource, 
 func getMainTokenSource(ctx context.Context) (*CachingTokenSource, error) {
 	var ts TokenSourceWithCacheKey
 	var err error
-	ts, err = ReadApplicationCredentials()
+	ts, err = EnvApplicationCredentialManager().ReadApplicationCredentials()
 	if err != nil {
 		ts, err = NewGoogleComputeTokenSourceWrapper(ctx)
 	}

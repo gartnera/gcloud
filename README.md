@@ -38,6 +38,7 @@ go install github.com/gartnera/gcloud@latest
 - `gcloud auth application-default login` (code flow)
 - `gcloud auth application-default print-access-token`
 - `gcloud auth print-access-token`
+- `gcloud auth print-identity-token`
 - `gcloud auth configure-docker`
 - `gcloud auth docker-helper`
 

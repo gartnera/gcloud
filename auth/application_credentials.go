@@ -57,9 +57,7 @@ func (a *ApplicationCredentials) userToken() (*oauth2.Token, error) {
 	conf := &oauth2.Config{
 		ClientID:     a.ClientID,
 		ClientSecret: a.ClientSecret,
-		Endpoint: oauth2.Endpoint{
-			TokenURL: a.TokenUri,
-		},
+		Endpoint:     google.Endpoint,
 	}
 	loadedToken := &oauth2.Token{
 		RefreshToken: a.RefreshToken,

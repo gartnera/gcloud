@@ -152,11 +152,10 @@ func (c *CachingTokenSource) tokenFromDisk() (*identityToken, error) {
 
 func (c *CachingTokenSource) tokenToDisk(tok *identityToken) error {
 	cacheKey := c.cacheKey()
-
 	jsonCachePath := path.Join(c.cacheDir, fmt.Sprintf("%s.json", cacheKey))
-	jsonCachePathTmp := jsonCachePath + ".tmp"
 
-	jsonCacheFile, err := os.OpenFile(jsonCachePathTmp, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	jsonTmpPattern := fmt.Sprintf("%s.json.tmp.*", cacheKey)
+	jsonCacheFile, err := os.CreateTemp(c.cacheDir, jsonTmpPattern)
 	if err != nil {
 		return fmt.Errorf("unable to open cache file: %w", err)
 	}
@@ -167,16 +166,18 @@ func (c *CachingTokenSource) tokenToDisk(tok *identityToken) error {
 		return fmt.Errorf("unable to encode token: %w", err)
 	}
 	jsonCacheFile.Close()
-	err = os.Rename(jsonCachePathTmp, jsonCachePath)
+	err = os.Rename(jsonCacheFile.Name(), jsonCachePath)
 	if err != nil {
 		return fmt.Errorf("unable to rename tmpfile: %w", err)
 	}
 
 	// also write out the raw token for use in fallback
 	rawCachePath := c.GetAccessTokenPath()
-	rawCachePathTmp := rawCachePath + ".tmp"
-
-	rawCacheFile, err := os.OpenFile(rawCachePathTmp, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	rawTmpPattern := fmt.Sprintf("%s.tmp.*", cacheKey)
+	rawCacheFile, err := os.CreateTemp(c.cacheDir, rawTmpPattern)
+	if err != nil {
+		return fmt.Errorf("unable to open cache file: %w", err)
+	}
 	if err != nil {
 		return fmt.Errorf("unable to open cache file: %w", err)
 	}
@@ -186,7 +187,7 @@ func (c *CachingTokenSource) tokenToDisk(tok *identityToken) error {
 		return fmt.Errorf("unable to write token to cache file: %w", err)
 	}
 	rawCacheFile.Close()
-	err = os.Rename(rawCachePathTmp, rawCachePath)
+	err = os.Rename(rawCacheFile.Name(), rawCachePath)
 	if err != nil {
 		return fmt.Errorf("unable to rename tmpfile: %w", err)
 	}

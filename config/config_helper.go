@@ -52,6 +52,8 @@ var configHelperCmd = &cobra.Command{
 		jsonEncoder := json.NewEncoder(cmd.OutOrStdout())
 		if outputFormat == "json" {
 			err = jsonEncoder.Encode(output)
+		} else if outputFormat == "json(credential)" {
+			err = jsonEncoder.Encode(output.Credential)
 		} else if outputFormat == "yaml" {
 			encoder := yaml.NewEncoder(cmd.OutOrStdout())
 			err = encoder.Encode(output)

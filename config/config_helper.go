@@ -65,6 +65,15 @@ var configHelperCmd = &cobra.Command{
 					ExpirationTimestamp: token.Expiry,
 				}}
 			err = jsonEncoder.Encode(outputv1)
+		} else if outputFormat == "client.authentication.k8s.io/v1" {
+			outputv1 := &ExecCredential{
+				APIVersion: "client.authentication.k8s.io/v1",
+				Kind:       "ExecCredential",
+				Status: ExecCredentialStatus{
+					Token:               token.AccessToken,
+					ExpirationTimestamp: token.Expiry,
+				}}
+			err = jsonEncoder.Encode(outputv1)
 		} else {
 			return fmt.Errorf("invalid output format: %s", outputFormat)
 		}

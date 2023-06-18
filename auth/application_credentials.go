@@ -320,7 +320,6 @@ func (m *ApplicationCredentialManager) BrowserFlowLogin(ctx context.Context, quo
 
 func (m *ApplicationCredentialManager) AutoDetectLogin(ctx context.Context, quotaProject string) error {
 	if detectBrowserAvailable() {
-		fmt.Println("browser avaliable)")
 		return m.BrowserFlowLogin(ctx, quotaProject)
 	}
 
@@ -374,6 +373,8 @@ type googleAccountLoginCallback struct {
 	values chan url.Values
 }
 
+const loginCompleteMessage = "<html><head><title>Login complete</title></head><body>Login complete. You can close this page now.</body></html>"
+
 func (cb *googleAccountLoginCallback) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
@@ -383,7 +384,7 @@ func (cb *googleAccountLoginCallback) ServeHTTP(w http.ResponseWriter, r *http.R
 	}
 
 	cb.values <- r.URL.Query()
-	_, _ = w.Write([]byte("Login complete, you can close this page now"))
+	_, _ = w.Write([]byte(loginCompleteMessage))
 }
 
 func (cb *googleAccountLoginCallback) wait() (string, error) {

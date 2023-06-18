@@ -54,13 +54,25 @@ func identityTokenToToken(token *identityToken, isIdentity bool) *oauth2.Token {
 	}
 }
 
+func TokenSourceCtx(ctx context.Context) (*CachingTokenSource, error) {
+	return maybeGetImpersonatedTokenSource(ctx)
+}
+
 // TokenSource returns a cached application default credentials or falls back to the compute token source
 func TokenSource() (*CachingTokenSource, error) {
-	return maybeGetImpersonatedTokenSource(context.Background())
+	return TokenSourceCtx(context.Background())
 }
 
 func Token() (*oauth2.Token, error) {
 	ts, err := TokenSource()
+	if err != nil {
+		return nil, fmt.Errorf("unable to get token: %w", err)
+	}
+	return ts.Token()
+}
+
+func TokenCtx(ctx context.Context) (*oauth2.Token, error) {
+	ts, err := TokenSourceCtx(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get token: %w", err)
 	}

@@ -17,6 +17,7 @@ func GetRootCmd() *cobra.Command {
 		rootCmd.AddCommand(configureDockerCmd)
 		rootCmd.AddCommand(dockerHelperCmd)
 		rootCmd.AddCommand(loginCmd)
+		rootCmd.AddCommand(autoLoginCmd)
 
 		rootCmd.AddCommand(printAccessTokenCmd)
 		registerConfigHelperCmd(rootCmd)

@@ -5,7 +5,8 @@ import (
 )
 
 var loginCmd = &cobra.Command{
-	Use: "login",
+	Use:                "login",
+	DisableFlagParsing: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
 
